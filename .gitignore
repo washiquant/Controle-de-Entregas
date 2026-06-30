@@ -1,0 +1,28 @@
+# --- PASTAS DO PYTHON E AMBIENTES ---
+.venv/
+env/
+venv/
+venv_dir/
+
+# Lixo gerado pelo Python (compilação)
+__pycache__/
+*.py[cod]
+*$py.class
+
+# --- AMBIENTE E CONFIGURAÇÕES ---
+.env
+.env.local
+.env.*.local
+
+# --- TESTES E COBERTURA ---
+.pytest_cache/
+.coverage
+htmlcov/
+
+# --- IDEs E EDITORES ---
+.vscode/
+.idea/
+.DS_Store          # Arquivo invisível do Mac
+
+# --- DOCKER (Para o futuro) ---
+.dockerignore
