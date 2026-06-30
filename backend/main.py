@@ -1,11 +1,5 @@
-import sqlite3
 import os
 from datetime import datetime
-
-
-
-
-import os
 import sqlite3
 
 def get_db_path():
