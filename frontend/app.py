@@ -1,5 +1,5 @@
 import flet as ft
-from main import (
+from backend.main import (
     Comanda,
     adicionar_comanda,
     deletar_comanda,
