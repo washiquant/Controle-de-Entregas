@@ -7,6 +7,7 @@ from backend.main import (
     total_do_dia,
     buscar_comandas
 )
+
 def main(page: ft.Page):
     mensagem = ft.Text()
     lista_comandas = ft.Column()

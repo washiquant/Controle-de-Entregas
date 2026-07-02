@@ -141,3 +141,10 @@ def media_mensal():
     media_do_mes = cursor.fetchone()[0]
     banco.close()
     return media_do_mes if media_do_mes else 0.0
+
+def validar_numero_comanda(numero_comanda:str,valor_entrega:float,cep:str):
+    if not numero_comanda.strip():
+        raise ValueError("Numero da comanda obrigatório.")
+
+    if not numero_comanda.isdigit():
+        raise ValueError("A comanda deve conter apenas numeros")
