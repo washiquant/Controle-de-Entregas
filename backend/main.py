@@ -1,5 +1,11 @@
+import sqlite3
 import os
 from datetime import datetime
+
+
+
+
+import os
 import sqlite3
 
 def get_db_path():
@@ -14,7 +20,6 @@ def conectar_banco():
     except Exception as e:
         print(f"Erro crítico ao abrir banco: {e}")
         raise
-# Classe conforme seu código original
 class Comanda:
     def __init__(self, numero, valor, cep):
         self.numero = numero
@@ -42,6 +47,7 @@ def adicionar_comanda(c):
     cursor = banco.cursor()
     cursor.execute("INSERT INTO comandas (numero, valor, cep, data) VALUES (?, ?, ?, ?)",
                    (c.numero, c.valor, c.cep, c.data))
+    
     banco.commit()
     banco.close()
 
@@ -70,7 +76,68 @@ def buscar_comandas():
 def total_do_dia():
     banco = conectar_banco()
     cursor = banco.cursor()
-    cursor.execute("SELECT SUM(valor) FROM comandas")
+    cursor.execute("SELECT SUM(valor) FROM comandas WHERE DATE(data) = DATE('now')")
     total = cursor.fetchone()[0]
     banco.close()
     return total if total else 0.0
+
+def total_do_mes():
+    banco = conectar_banco()
+    cursor = banco.cursor()
+    cursor.execute("SELECT SUM(valor) FROM comandas WHERE strftime('%Y-%m', data) = strftime('%Y-%m', 'now')")
+    total_mes = cursor.fetchone()[0]
+    banco.close()
+    return total_mes if total_mes else 0.0
+
+def total_da_semana():
+    banco = conectar_banco()
+    cursor = banco.cursor()
+    cursor.execute("SELECT SUM(valor) FROM comandas WHERE strftime('%Y-%W', data) = strftime('%Y-%W', 'now')")
+    total_semana = cursor.fetchone()[0]
+    banco.close()
+    return total_semana if total_semana else 0.0
+
+
+def media_diaria():
+    banco = conectar_banco()
+    cursor = banco.cursor()
+    cursor.execute("""
+    SELECT AVG(total_dia) FROM(
+        SELECT SUM(valor) AS total_dia
+        FROM comandas
+        GROUP BY DATE(data)
+    )
+""")
+    media = cursor.fetchone()[0]
+    banco.close()
+    return media if media else 0.0
+
+def media_semanal():
+    banco = conectar_banco()
+    cursor = banco.cursor()
+    cursor.execute("""
+    SELECT AVG(total_semana) 
+    FROM(
+        SELECT SUM(valor) AS total_semana
+        FROM comandas
+        GROUP BY strftime('%Y-%W', data)
+    )
+    """)
+    media_da_semana = cursor.fetchone()[0]
+    banco.close()
+    return media_da_semana if media_da_semana else 0.0
+
+def media_mensal():
+    banco = conectar_banco()
+    cursor = banco.cursor()
+    cursor.execute("""
+    SELECT AVG(total_mes) 
+    FROM(
+        SELECT SUM(valor) AS total_mes
+        FROM comandas
+        GROUP BY strftime('%Y-%m', data)
+    )
+    """)
+    media_do_mes = cursor.fetchone()[0]
+    banco.close()
+    return media_do_mes if media_do_mes else 0.0
