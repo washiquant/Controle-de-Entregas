@@ -5,8 +5,10 @@ from backend.main import (
     deletar_comanda,
     atualizar_banco_de_dados,
     total_do_dia,
-    buscar_comandas
+    buscar_comandas,
+    validar_numero_comanda
 )
+
 
 def main(page: ft.Page):
     mensagem = ft.Text()
@@ -66,13 +68,16 @@ def main(page: ft.Page):
     def adicionar(e):
 
         try:
+            #validando
+            validar_numero_comanda(numero_comanda.value,valor_entrega.value,cep.value)
+            #convertendo tipos :
 
             comanda = Comanda(
                 int(numero_comanda.value),
                 float(valor_entrega.value),
                 cep.value
             )
-
+            #salvando
             adicionar_comanda(comanda)
             numero_comanda.value = ""
             valor_entrega.value = ""
@@ -284,3 +289,4 @@ def main(page: ft.Page):
     )
 
 ft.app(target=main)
+
