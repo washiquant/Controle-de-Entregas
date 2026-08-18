@@ -1,3 +1,4 @@
+import flet
 import flet as ft
 from backend.main import (
     Comanda,
@@ -15,6 +16,8 @@ def main(page: ft.Page):
     lista_comandas = ft.Column()
     page.title = ("REGRESSAO 2 ( com atualizar)")
     page.scroll = ft.ScrollMode.AUTO
+
+
     def carregar_comandas():
 
         lista_comandas.controls.clear()
@@ -65,6 +68,9 @@ def main(page: ft.Page):
             f"Total do Dia: R$ {total_do_dia()}"
         )
 
+    def atualizar_quantidade():
+        quantidade.value = f"📊 Entregas: {quantidade_entregas()}"
+
     def adicionar(e):
 
         try:
@@ -85,6 +91,7 @@ def main(page: ft.Page):
             mensagem.value = "Comanda adicionada!"
             carregar_comandas()
             atualizar_total()
+            atualizar_quantidade()
         except Exception as erro:
 
             mensagem.value = str(erro)
@@ -104,6 +111,8 @@ def main(page: ft.Page):
         ],
         horizontal_alignment=ft.CrossAxisAlignment.CENTER
     )
+
+
 
     def quantidade_entregas():
 
@@ -170,7 +179,7 @@ def main(page: ft.Page):
 
                 carregar_comandas()
                 atualizar_total()
-
+                atualizar_quantidade()
                 dialog.open = False
 
                 page.update()
@@ -288,5 +297,5 @@ def main(page: ft.Page):
         ft.Container(height=100)
     )
 
-ft.app(target=main)
+ft.run(main)
 

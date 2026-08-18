@@ -14,3 +14,4 @@ def validar_valor_entrega(valor_entrega):
     if not valor_entrega.isdigit():
         raise ValueError("A comanda deve conter apenas numeros reais")
 
+#TESTES UNITARIOS COM PYTEST 
