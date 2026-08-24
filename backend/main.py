@@ -1,44 +1,90 @@
 import sqlite3
 import os
+
 from datetime import datetime
-
-
-
-
 import os
 import sqlite3
 
 def get_db_path():
     return "controle_de_entregas.db"
 
-def conectar_banco():
-    # Tenta conectar. Se falhar, é erro de permissão ou caminho.
-    try:
-        path = get_db_path()
-        banco = sqlite3.connect(path)
-        return banco
-    except Exception as e:
-        print(f"Erro crítico ao abrir banco: {e}")
-        raise
 class Comanda:
+
+
     def __init__(self, numero, valor, cep):
         self.numero = numero
         self.valor = valor
         self.cep = cep
-        self.data = datetime.now().strftime("%d/%m/%Y %H:%M")
+        self.data = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+        # convertendo as entradas para os tipos correspondentes do banco de dados:
+        self.numero = str(self.numero)
+        self.valor = int(self.valor)
+        self.cep = str(self.cep)
+        self.data = str(self.data)
+
+        #padronizando as entradas:
+        self.funcao_padronizadora_numero(self.numero)
+        self.funcao_padronizadora_valor(self.valor)
+        self.funcao_padronizadora_cep(self.cep)
+        self.funcao_padronizadora_data_comanda(self.data)
+
+
+
+
+    def funcao_padronizadora(self, x):
+        if not x.strip():
+            raise ValueError("Numero da comanda obrigatório.")
+
+        if not x.isdigit():
+            raise ValueError("A comanda deve conter apenas numeros reais")
+
+    def funcao_padronizadora_valor(self, x):
+        if x > 0 :
+            return x
+        else :
+            raise ValueError("O valor precisa ser maior que 0")
+
+
+
+    def funcao_padronizadora_numero(self, x):
+        Comanda.funcao_padronizadora(self,x)
+
+    def funcao_padronizadora_data(self, x):
+        if not x.strip():
+            raise ValueError("Numero da comanda obrigatório.")
+
+
+
+
+    def funcao_padronizadora_cep(self, x):
+        Comanda.funcao_padronizadora(self,x)
+
+    def funcao_padronizadora_data_comanda(self, x):
+        Comanda.funcao_padronizadora_data(self,x)
+
+
+
+
 
 def conectar_banco():
-    banco = sqlite3.connect(get_db_path())
+    path = get_db_path()
+
+    print("CAMINHO DO BANCO:", os.path.abspath(path))
+
+    banco = sqlite3.connect(path)
+
     cursor = banco.cursor()
-    cursor.execute('''
+    cursor.execute("""
         CREATE TABLE IF NOT EXISTS comandas (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             numero TEXT,
             valor REAL,
-            cep TEXT,
+             cep TEXT,
             data TEXT
         )
-    ''')
+    """)
+
     banco.commit()
     return banco
 
@@ -47,6 +93,8 @@ def adicionar_comanda(c):
     cursor = banco.cursor()
     cursor.execute("INSERT INTO comandas (numero, valor, cep, data) VALUES (?, ?, ?, ?)",
                    (c.numero, c.valor, c.cep, c.data))
+    cursor.execute("SELECT * FROM comandas")
+    print("DEPOIS DO INSERT:", cursor.fetchall())
     
     banco.commit()
     banco.close()
@@ -65,6 +113,7 @@ def atualizar_banco_de_dados(novo_valor, id_atualizacao):
     banco.commit()
     banco.close()
 
+
 def buscar_comandas():
     banco = conectar_banco()
     cursor = banco.cursor()
@@ -76,9 +125,17 @@ def buscar_comandas():
 def total_do_dia():
     banco = conectar_banco()
     cursor = banco.cursor()
-    cursor.execute("SELECT SUM(valor) FROM comandas WHERE DATE(data) = DATE('now')")
+
+    cursor.execute("""
+        SELECT SUM(valor)
+        FROM comandas
+        WHERE DATE(data) = DATE('now')
+    """)
+
     total = cursor.fetchone()[0]
+
     banco.close()
+
     return total if total else 0.0
 
 def total_do_mes():
@@ -155,3 +212,5 @@ def validar_valor_entrega(valor_entrega):
 
     if not valor_entrega.isdigit():
         raise ValueError("A comanda deve conter apenas numeros reais")
+
+total_do_dia()

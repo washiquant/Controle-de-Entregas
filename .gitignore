@@ -26,3 +26,6 @@ htmlcov/
 
 # --- DOCKER (Para o futuro) ---
 .dockerignore
+# Banco de dados
+controle_de_entregas.db
+/database
