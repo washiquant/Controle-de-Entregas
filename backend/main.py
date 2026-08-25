@@ -17,17 +17,28 @@ class Comanda:
         self.cep = cep
         self.data = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-        # convertendo as entradas para os tipos correspondentes do banco de dados:
+        #CONVERSÕES E VALIDAÇÃO DAS ENTRADAS ->
+
         self.numero = str(self.numero)
-        self.valor = int(self.valor)
+
+        try:
+            self.valor = int(self.valor)
+        except ValueError:
+            raise ValueError("O valor deve ser um numero INTEIRO e REAL!")
+
         self.cep = str(self.cep)
         self.data = str(self.data)
 
-        #padronizando as entradas:
+
+
+        #PADRONIZAÇÃO DAS COMANDAS PELAS REGRAS DE NEGOCIO ->
+
+
         self.funcao_padronizadora_numero(self.numero)
         self.funcao_padronizadora_valor(self.valor)
         self.funcao_padronizadora_cep(self.cep)
         self.funcao_padronizadora_data_comanda(self.data)
+
 
 
 
@@ -43,7 +54,7 @@ class Comanda:
         if x > 0 :
             return x
         else :
-            raise ValueError("O valor precisa ser maior que 0")
+            raise ValueError("O valor deve ser um numero inteiro e real")
 
 
 
