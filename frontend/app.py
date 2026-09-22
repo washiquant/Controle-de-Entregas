@@ -12,237 +12,225 @@ from backend.main import (
     media_semanal,
     media_mensal
 )
+from backend.grafico import gerar_grafico_faturamento_base64
+
+# Imagem transparente inicial (1x1 px em formato Data URI)
+IMG_PLACEHOLDER = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII="
 
 
 def main(page: ft.Page):
     page.title = "Sistema de Controle de Entregas"
     page.theme_mode = ft.ThemeMode.DARK
     page.scroll = ft.ScrollMode.AUTO
-    page.padding = 20
+    page.padding = 15
 
-    # Componentes globais de feedback
     mensagem = ft.Text(size=14, weight=ft.FontWeight.BOLD)
     lista_comandas = ft.Column(spacing=10)
 
     # ------------------------------------------------------------------
-    # PIPELINE DE VALIDAÇÃO (Regras de Negócio no Frontend/Apresentação)
+    # COMPONENTES DO MODAL ANALÍTICO (DASHBOARD & GRÁFICO)
     # ------------------------------------------------------------------
-    def validar_e_extrair_entradas(num_str: str, val_str: str, cep_str: str):
-        if not num_str.strip() or not val_str.strip() or not cep_str.strip():
-            raise ValueError("⚠️ Preencha todos os campos obrigatórios!")
+    img_chart = ft.Image(src=IMG_PLACEHOLDER, fit="contain", height=280)
+    txt_stats_resumo = ft.Text("A carregar métricas...", size=13, color=ft.Colors.GREY_300)
 
-        if not num_str.isdigit():
-            raise ValueError("⚠️ O número da comanda deve conter apenas números inteiros.")
+    def fechar_dialogo(e=None):
+        dialogo_dashboard.open = False
+        page.update()
 
-        val_limpo = val_str.replace(",", ".")
+    dialogo_dashboard = ft.AlertDialog(
+        title=ft.Row([
+            ft.Text("📊 Painel Analítico & Gráficos", size=16, weight=ft.FontWeight.BOLD),
+            ft.IconButton(ft.Icons.CLOSE, on_click=fechar_dialogo)
+        ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
+        content=ft.Container(
+            content=ft.Column([
+                img_chart,
+                ft.Divider(height=15),
+                txt_stats_resumo
+            ], tight=True, spacing=10),
+            width=380,
+            padding=10
+        )
+    )
+
+    page.overlay.append(dialogo_dashboard)
+
+    def abrir_dashboard(e):
+        dialogo_dashboard.open = True
+        page.update()
+
         try:
-            val_float = float(val_limpo)
-        except ValueError:
-            raise ValueError("⚠️ O valor da entrega deve ser um número válido (ex: 15.50).")
+            d_total = total_do_dia()
+            s_total = total_da_semana()
+            m_total = total_do_mes()
 
-        if val_float <= 0:
-            raise ValueError("⚠️ O valor da entrega deve ser maior que zero!")
+            d_media = media_diaria()
+            s_media = media_semanal()
+            m_media = media_mensal()
 
-        return int(num_str), val_float, cep_str.strip()
+            dados_totais = {
+                "Hoje": d_total,
+                "Semana": s_total,
+                "Mês": m_total
+            }
 
-    # ------------------------------------------------------------------
-    # ATUALIZAÇÃO DA INTERFACE & DASHBOARD
-    # ------------------------------------------------------------------
-    def carregar_comandas():
-        lista_comandas.controls.clear()
-        comandas = buscar_comandas()
+            # Gera a imagem Base64 e atribui via Data URI ao atributo src
+            b64_str = gerar_grafico_faturamento_base64(dados_totais)
+            img_chart.src = f"data:image/png;base64,{b64_str}"
 
-        if not comandas:
-            lista_comandas.controls.append(
-                ft.Text("Nenhuma comanda registrada hoje.", color=ft.Colors.GREY_500)
+            txt_stats_resumo.value = (
+                f"📈 MÉDIAS: Dia: R$ {d_media:.2f} | Sem: R$ {s_media:.2f} | Mês: R$ {m_media:.2f}\n"
+                f"💰 TOTAIS: Dia: R$ {d_total:.2f} | Sem: R$ {s_total:.2f} | Mês: R$ {m_total:.2f}"
             )
-        else:
-            for linha in comandas:
-                # linha: (id, numero, valor, cep, data)
-                c_id, c_num, c_val, c_cep, c_data = linha[0], linha[1], linha[2], linha[3], linha[4]
+        except Exception as err:
+            txt_stats_resumo.value = f"Erro ao gerar métricas: {err}"
 
-                card = ft.Card(
-                    elevation=3,
-                    content=ft.Container(
-                        padding=15,
-                        content=ft.Row(
-                            alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
-                            controls=[
-                                ft.Column([
-                                    ft.Text(f"📦 Comanda #{c_num}", size=16, weight=ft.FontWeight.BOLD),
-                                    ft.Text(f"📍 CEP: {c_cep} | 🆔 ID: {c_id}", size=12, color=ft.Colors.GREY_400),
-                                    ft.Text(f"🕒 {c_data}", size=11, color=ft.Colors.GREY_500),
-                                ]),
-                                ft.Text(f"R$ {c_val:.2f}", size=18, weight=ft.FontWeight.BOLD,
-                                        color=ft.Colors.GREEN_400)
-                            ]
-                        )
-                    )
-                )
-                lista_comandas.controls.append(card)
-
-    def atualizar_dashboard():
-        # Obtendo dados das queries SQL do backend
-        t_dia = total_do_dia()
-        t_sem = total_da_semana()
-        t_mes = total_do_mes()
-        m_dia = media_diaria()
-        m_sem = media_semanal()
-        m_mes = media_mensal()
-
-        txt_total_dia.value = f"R$ {t_dia:.2f}"
-        txt_total_sem.value = f"R$ {t_sem:.2f}"
-        txt_total_mes.value = f"R$ {t_mes:.2f}"
-        txt_media_dia.value = f"Média: R$ {m_dia:.2f}"
-        txt_media_sem.value = f"Média: R$ {m_sem:.2f}"
-        txt_media_mes.value = f"Média: R$ {m_mes:.2f}"
-
-    def atualizar_tudo():
-        carregar_comandas()
-        atualizar_dashboard()
         page.update()
 
     # ------------------------------------------------------------------
-    # ACOES
+    # OPERAÇÕES DE BANCO E REGRA DE NEGÓCIO
     # ------------------------------------------------------------------
+    def carregar_comandas():
+        lista_comandas.controls.clear()
+        try:
+            comandas = buscar_comandas()
+            if not comandas:
+                lista_comandas.controls.append(
+                    ft.Text("Nenhuma comanda registrada.", color=ft.Colors.GREY_500)
+                )
+            else:
+                for linha in comandas:
+                    c_id, c_num, c_val, c_cep, c_data = linha[0], linha[1], linha[2], linha[3], linha[4]
+                    card = ft.Card(
+                        elevation=2,
+                        content=ft.Container(
+                            padding=12,
+                            content=ft.Row(
+                                alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+                                controls=[
+                                    ft.Column([
+                                        ft.Text(f"📦 Comanda #{c_num}", size=15, weight=ft.FontWeight.BOLD),
+                                        ft.Text(f"📍 CEP: {c_cep} | 🆔 ID: {c_id}", size=11, color=ft.Colors.GREY_400),
+                                        ft.Text(f"🕒 {c_data}", size=10, color=ft.Colors.GREY_500),
+                                    ], spacing=2),
+                                    ft.Text(f"R$ {c_val:.2f}", size=16, weight=ft.FontWeight.BOLD,
+                                            color=ft.Colors.GREEN_400)
+                                ]
+                            )
+                        )
+                    )
+                    lista_comandas.controls.append(card)
+        except Exception as err:
+            print(f"Erro ao carregar comandas: {err}")
+
     def acao_adicionar(e):
         try:
-            c_num, c_val, c_cep = validar_e_extrair_entradas(
-                txt_num_comanda.value, txt_val_entrega.value, txt_cep.value
-            )
+            if not txt_num_comanda.value or not txt_val_entrega.value or not txt_cep.value:
+                raise ValueError("Preencha todos os campos!")
 
-            nova_comanda = Comanda(c_num, c_val, c_cep)
+            val_limpo = float(txt_val_entrega.value.replace(",", "."))
+            nova_comanda = Comanda(int(txt_num_comanda.value), val_limpo, txt_cep.value)
             adicionar_comanda(nova_comanda)
 
             txt_num_comanda.value = ""
             txt_val_entrega.value = ""
             txt_cep.value = ""
 
-            mensagem.value = "✅ Comanda adicionada com sucesso!"
+            mensagem.value = "✅ Comanda adicionada!"
             mensagem.color = ft.Colors.GREEN_400
-            atualizar_tudo()
-
-        except ValueError as err:
-            mensagem.value = str(err)
-            mensagem.color = ft.Colors.RED_400
+            carregar_comandas()
             page.update()
         except Exception as err:
-            mensagem.value = f"❌ Erro de banco de dados: {err}"
-            mensagem.color = ft.Colors.ORANGE_400
+            mensagem.value = f"⚠️ Erro: {err}"
+            mensagem.color = ft.Colors.RED_400
             page.update()
 
     def acao_excluir(e):
         try:
-            if not txt_id_excluir.value.strip().isdigit():
-                raise ValueError("⚠️ Informe um ID válido para exclusão.")
-
+            if not txt_id_excluir.value.isdigit():
+                raise ValueError("Informe um ID válido.")
             deletar_comanda(int(txt_id_excluir.value))
             txt_id_excluir.value = ""
-            mensagem.value = "🗑️ Comanda excluída com sucesso!"
+            mensagem.value = "🗑️ Comanda excluída!"
             mensagem.color = ft.Colors.GREEN_400
-            atualizar_tudo()
-        except ValueError as err:
-            mensagem.value = str(err)
+            carregar_comandas()
+            page.update()
+        except Exception as err:
+            mensagem.value = f"⚠️ Erro: {err}"
             mensagem.color = ft.Colors.RED_400
             page.update()
 
     def acao_atualizar(e):
         try:
-            if not txt_id_atualizar.value.strip().isdigit():
-                raise ValueError("⚠️ ID inválido para atualização.")
-
-            val_limpo = txt_novo_valor.value.replace(",", ".")
-            novo_val = float(val_limpo)
-            if novo_val <= 0:
-                raise ValueError("⚠️ O novo valor deve ser maior que zero.")
-
+            if not txt_id_atualizar.value.isdigit():
+                raise ValueError("ID inválido.")
+            novo_val = float(txt_novo_valor.value.replace(",", "."))
             atualizar_banco_de_dados(novo_val, int(txt_id_atualizar.value))
             txt_id_atualizar.value = ""
             txt_novo_valor.value = ""
-            mensagem.value = "🔄 Valor atualizado com sucesso!"
+            mensagem.value = "🔄 Valor atualizado!"
             mensagem.color = ft.Colors.GREEN_400
-            atualizar_tudo()
-        except ValueError as err:
-            mensagem.value = str(err)
+            carregar_comandas()
+            page.update()
+        except Exception as err:
+            mensagem.value = f"⚠️ Erro: {err}"
             mensagem.color = ft.Colors.RED_400
             page.update()
 
     # ------------------------------------------------------------------
-    # COMPONENTES VISUAIS (CONTROLES)
+    # ESTRUTURA DO LAYOUT
     # ------------------------------------------------------------------
-    # Dashboard Cards
-    txt_total_dia = ft.Text("R$ 0.00", size=20, weight=ft.FontWeight.BOLD)
-    txt_media_dia = ft.Text("Média: R$ 0.00", size=12, color=ft.Colors.GREY_400)
-
-    txt_total_sem = ft.Text("R$ 0.00", size=20, weight=ft.FontWeight.BOLD)
-    txt_media_sem = ft.Text("Média: R$ 0.00", size=12, color=ft.Colors.GREY_400)
-
-    txt_total_mes = ft.Text("R$ 0.00", size=20, weight=ft.FontWeight.BOLD)
-    txt_media_mes = ft.Text("Média: R$ 0.00", size=12, color=ft.Colors.GREY_400)
-
-    # Ajuste na criação dos cards da Dashboard para evitar o AttributeError
-    def criar_card_metricas(titulo: str, txt_main, txt_sub, cor_borda):
-        return ft.Container(
-            expand=True,
-            padding=15,
-            border=ft.Border(
-                top=ft.BorderSide(1, cor_borda),
-                bottom=ft.BorderSide(1, cor_borda),
-                left=ft.BorderSide(1, cor_borda),
-                right=ft.BorderSide(1, cor_borda),
-            ),
-            border_radius=10,
-            content=ft.Column([
-                ft.Text(titulo, size=12, color=ft.Colors.GREY_300, weight=ft.FontWeight.BOLD),
-                txt_main,
-                txt_sub
-            ], spacing=2)
-        )
-
-    row_dashboard = ft.Row([
-        criar_card_metricas("HOJE", txt_total_dia, txt_media_dia, ft.Colors.BLUE_400),
-        criar_card_metricas("ESTA SEMANA", txt_total_sem, txt_media_sem, ft.Colors.PURPLE_400),
-        criar_card_metricas("ESTE MÊS", txt_total_mes, txt_media_mes, ft.Colors.GREEN_400),
-    ])
-
-    # Entradas de texto
     txt_num_comanda = ft.TextField(label="Nº Comanda", expand=True)
     txt_val_entrega = ft.TextField(label="Valor (R$)", expand=True)
     txt_cep = ft.TextField(label="CEP", expand=True)
 
-    txt_id_excluir = ft.TextField(label="ID p/ Excluir", width=150)
-    txt_id_atualizar = ft.TextField(label="ID p/ Alterar", width=150)
-    txt_novo_valor = ft.TextField(label="Novo Valor (R$)", width=150)
+    txt_id_excluir = ft.TextField(label="ID Excluir", width=120)
+    txt_id_atualizar = ft.TextField(label="ID Alterar", width=110)
+    txt_novo_valor = ft.TextField(label="Novo R$", width=110)
 
-    # Abas para Organização da Tela
+    header = ft.Row(
+        alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+        controls=[
+            ft.Text("🚚 Controle de Entregas", size=18, weight=ft.FontWeight.BOLD),
+            ft.IconButton(
+                icon=ft.Icons.MORE_VERT,
+                icon_color=ft.Colors.WHITE,
+                tooltip="Painel Analítico",
+                on_click=abrir_dashboard
+            )
+        ]
+    )
+
     tab_operacional = ft.Column([
-        ft.Text("➕ Nova Entrega", size=16, weight=ft.FontWeight.BOLD),
-        ft.Row([txt_num_comanda, txt_val_entrega, txt_cep]),
-        ft.ElevatedButton("Cadastrar Entrega", icon=ft.Icons.ADD, on_click=acao_adicionar,
-                          style=ft.ButtonStyle(color=ft.Colors.GREEN_400)),
+        ft.Text("➕ Nova Entrega", size=15, weight=ft.FontWeight.BOLD),
+        ft.Row([txt_num_comanda, txt_val_entrega]),
+        ft.Row([txt_cep]),
+        ft.ElevatedButton(
+            "Cadastrar Entrega",
+            icon=ft.Icons.ADD,
+            on_click=acao_adicionar,
+            style=ft.ButtonStyle(color=ft.Colors.GREEN_400)
+        ),
         ft.Divider(),
 
-        ft.Text("⚙️ Gerenciar Entregas", size=16, weight=ft.FontWeight.BOLD),
-        ft.Row([txt_id_excluir, ft.OutlinedButton("Excluir por ID", icon=ft.Icons.DELETE, on_click=acao_excluir)]),
+        ft.Text("⚙️ Gerenciar", size=15, weight=ft.FontWeight.BOLD),
+        ft.Row([txt_id_excluir, ft.OutlinedButton("Excluir", icon=ft.Icons.DELETE, on_click=acao_excluir)]),
         ft.Row([txt_id_atualizar, txt_novo_valor,
-                ft.OutlinedButton("Atualizar Valor", icon=ft.Icons.EDIT, on_click=acao_atualizar)]),
+                ft.OutlinedButton("Atualizar", icon=ft.Icons.EDIT, on_click=acao_atualizar)]),
         ft.Divider(),
 
-        ft.Text("📋 Comandas Registradas", size=16, weight=ft.FontWeight.BOLD),
+        ft.Text("📋 Comandas Registradas", size=15, weight=ft.FontWeight.BOLD),
         lista_comandas
-    ], spacing=15)
+    ], spacing=12)
 
-    # Layout Principal
     page.add(
-        ft.Text("🚚 CONTROLE DE ENTREGAS & DASHBOARD", size=22, weight=ft.FontWeight.BOLD),
-        row_dashboard,
+        header,
         mensagem,
-        ft.Divider(),
+        ft.Divider(height=10),
         tab_operacional
     )
 
-    # Carga Inicial
-    atualizar_tudo()
+    carregar_comandas()
 
 
 ft.app(target=main)
