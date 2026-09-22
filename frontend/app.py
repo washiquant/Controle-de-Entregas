@@ -13,6 +13,7 @@ from backend.main import (
     media_mensal
 )
 from backend.grafico import gerar_grafico_faturamento_base64
+from backend.cep_service import buscar_endereco_por_cep
 
 # Imagem transparente inicial (1x1 px em formato Data URI)
 IMG_PLACEHOLDER = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII="
@@ -74,7 +75,6 @@ def main(page: ft.Page):
                 "Mês": m_total
             }
 
-            # Gera a imagem Base64 e atribui via Data URI ao atributo src
             b64_str = gerar_grafico_faturamento_base64(dados_totais)
             img_chart.src = f"data:image/png;base64,{b64_str}"
 
@@ -86,6 +86,39 @@ def main(page: ft.Page):
             txt_stats_resumo.value = f"Erro ao gerar métricas: {err}"
 
         page.update()
+
+    # ------------------------------------------------------------------
+    # INTEGRAÇÃO VIA CEP & CAMPOS DE ENTRADA
+    # ------------------------------------------------------------------
+    txt_info_endereco = ft.Text(size=11, color=ft.Colors.GREY_400)
+
+    def acao_consultar_cep(e):
+        if not txt_cep.value:
+            txt_info_endereco.value = ""
+            page.update()
+            return
+
+        try:
+            dados_cep = buscar_endereco_por_cep(txt_cep.value)
+            txt_info_endereco.value = f"📍 {dados_cep['resumo']}"
+            txt_info_endereco.color = ft.Colors.GREEN_400
+        except Exception as err:
+            txt_info_endereco.value = f"⚠️ CEP: {err}"
+            txt_info_endereco.color = ft.Colors.RED_400
+        page.update()
+
+    txt_num_comanda = ft.TextField(label="Nº Comanda", expand=True)
+    txt_val_entrega = ft.TextField(label="Valor (R$)", expand=True)
+    txt_cep = ft.TextField(
+        label="CEP",
+        expand=True,
+        on_blur=acao_consultar_cep,
+        hint_text="Ex: 07010-010"
+    )
+
+    txt_id_excluir = ft.TextField(label="ID Excluir", width=120)
+    txt_id_atualizar = ft.TextField(label="ID Alterar", width=110)
+    txt_novo_valor = ft.TextField(label="Novo R$", width=110)
 
     # ------------------------------------------------------------------
     # OPERAÇÕES DE BANCO E REGRA DE NEGÓCIO
@@ -128,6 +161,9 @@ def main(page: ft.Page):
             if not txt_num_comanda.value or not txt_val_entrega.value or not txt_cep.value:
                 raise ValueError("Preencha todos os campos!")
 
+            # Tenta validar o CEP na API antes de salvar
+            buscar_endereco_por_cep(txt_cep.value)
+
             val_limpo = float(txt_val_entrega.value.replace(",", "."))
             nova_comanda = Comanda(int(txt_num_comanda.value), val_limpo, txt_cep.value)
             adicionar_comanda(nova_comanda)
@@ -135,6 +171,7 @@ def main(page: ft.Page):
             txt_num_comanda.value = ""
             txt_val_entrega.value = ""
             txt_cep.value = ""
+            txt_info_endereco.value = ""
 
             mensagem.value = "✅ Comanda adicionada!"
             mensagem.color = ft.Colors.GREEN_400
@@ -180,14 +217,6 @@ def main(page: ft.Page):
     # ------------------------------------------------------------------
     # ESTRUTURA DO LAYOUT
     # ------------------------------------------------------------------
-    txt_num_comanda = ft.TextField(label="Nº Comanda", expand=True)
-    txt_val_entrega = ft.TextField(label="Valor (R$)", expand=True)
-    txt_cep = ft.TextField(label="CEP", expand=True)
-
-    txt_id_excluir = ft.TextField(label="ID Excluir", width=120)
-    txt_id_atualizar = ft.TextField(label="ID Alterar", width=110)
-    txt_novo_valor = ft.TextField(label="Novo R$", width=110)
-
     header = ft.Row(
         alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
         controls=[
@@ -204,7 +233,8 @@ def main(page: ft.Page):
     tab_operacional = ft.Column([
         ft.Text("➕ Nova Entrega", size=15, weight=ft.FontWeight.BOLD),
         ft.Row([txt_num_comanda, txt_val_entrega]),
-        ft.Row([txt_cep]),
+        ft.Row([txt_cep, ft.IconButton(icon=ft.Icons.SEARCH, tooltip="Buscar CEP", on_click=acao_consultar_cep)]),
+        txt_info_endereco,
         ft.ElevatedButton(
             "Cadastrar Entrega",
             icon=ft.Icons.ADD,
