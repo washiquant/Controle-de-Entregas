@@ -1,0 +1,12 @@
+version: '3.8'
+
+services:
+  app:
+    build: .
+    container_name: controle_entregas_app
+    ports:
+      - "8080:8080"
+    volumes:
+      # Monta o banco de dados local para não perder os dados ao parar o container
+      - ./delivery.db:/app/delivery.db
+    restart: always
