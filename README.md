@@ -1,118 +1,47 @@
-# 🚚 Controle de Entregas
+# 🚚 Sistema de Controle de Entregas & Painel Analítico
 
-Aplicativo desenvolvido em Python utilizando Flet para gerenciamento de entregas, controle de comandas e acompanhamento do faturamento diário.
+Aplicação desktop/web para gestão de entregas operacionais e monitoramento de faturamento, desenvolvida com **Python**, **Flet** e **SQLite**. O sistema conta com integração em tempo real com a API do **ViaCEP** para validação e busca automática de endereços, além de um painel analítico com gráficos gerados dinamicamente via **Matplotlib**.
 
-O projeto foi criado para uso real em operações de delivery, permitindo registrar entregas, atualizar valores, excluir registros e acompanhar o total arrecadado ao longo do dia.
+![Python](https://img.shields.io/badge/Python-3.11+-blue?style=flat-square&logo=python)
+![Flet](https://img.shields.io/badge/Flet-0.80+-purple?style=flat-square)
+![SQLite](https://img.shields.io/badge/SQLite-3-lightgrey?style=flat-square&logo=sqlite)
+![Pytest](https://img.shields.io/badge/Pytest-Passed-brightgreen?style=flat-square&logo=pytest)
 
 ---
 
-## 📱 Funcionalidades
+## 📸 Funcionalidades
 
-* Cadastro de novas comandas
-* Registro do valor de cada entrega
-* Registro opcional de CEP
-* Atualização de valores cadastrados
-* Exclusão de comandas com confirmação
-* Cálculo automático do total do dia
-* Contagem de entregas realizadas
-* Armazenamento local utilizando SQLite
-* Interface responsiva para Android
-* Geração de APK utilizando Flet
+- **Gestão de Entregas (CRUD):** Cadastro, listagem, atualização e exclusão de comandas com persistência em banco SQLite.
+- **Integração com API REST (ViaCEP):** Consulta e autopreenchimento de endereço ao inserir o CEP da entrega.
+- **Painel Analítico & Gráficos:** Cálculo de médias/totais (diário, semanal e mensal) e renderização de gráficos do Matplotlib codificados em Base64 para exibição reativa.
+- **Testes Automatizados:** Suíte de testes unitários com `pytest` utilizando banco de dados isolado em memória (`:memory:`) e `unittest.mock` para chamadas HTTP.
 
 ---
 
 ## 🛠️ Tecnologias Utilizadas
 
-* Python 3
-* Flet
-* SQLite
-* Flutter (geração do APK Android)
+- **Linguagem:** Python
+- **Interface Gráfica:** [Flet](https://flet.dev/) (Flutter for Python)
+- **Banco de Dados:** SQLite
+- **Visualização de Dados:** Matplotlib & BytesIO
+- **Integração HTTP:** Requests (ViaCEP API)
+- **Testes Automatizados:** Pytest & Unittest.Mock
 
 ---
 
-## 📂 Estrutura do Projeto
+## 📐 Arquitetura do Projeto
 
 ```text
-├── app.py
-├── main.py
-├── banco.db
-├── requirements.txt
-└── README.md
-```
-
----
-
-## 🚀 Como Executar
-
-### Clonar o repositório
-
-```bash
-git clone https://github.com/seu-usuario/controle-entregas.git
-```
-
-### Entrar na pasta
-
-```bash
-cd controle-entregas
-```
-
-### Criar ambiente virtual
-
-```bash
-python -m venv .venv
-```
-
-### Ativar ambiente virtual
-
-Windows:
-
-```bash
-.venv\Scripts\activate
-```
-
-### Instalar dependências
-
-```bash
-pip install -r requirements.txt
-```
-
-### Executar aplicação
-
-```bash
-python app.py
-```
-
----
-
-## 📦 Gerar APK Android
-
-```bash
-flet build apk --module-name app
-```
-
----
-
-## 📸 Funcionalidades da Interface
-
-* Visualização das entregas cadastradas
-* Cards com identificação das comandas
-* Total diário atualizado automaticamente
-* Confirmação antes da exclusão de registros
-* Layout otimizado para dispositivos móveis
-
----
-
-## 🎯 Próximas Melhorias
-
-* Dashboard financeiro
-* Estatísticas de faturamento
-* Ticket médio por entrega
-* Histórico por período
-* Gráficos de desempenho
-* Backup automático do banco de dados
-
----
-
-## 👨‍💻 Autor
-
-Desenvolvido por Washington Willian R. Moreira como projeto de estudo e aplicação prática de Python, Flet e desenvolvimento mobile.
+Controle-de-Entregas/
+├── backend/
+│   ├── main.py            # Regras de negócio e persistência SQLite
+│   ├── grafico.py         # Geração de gráficos Matplotlib em Base64
+│   └── cep_service.py     # Integração com a API do ViaCEP
+├── frontend/
+│   └── app.py             # Interface reativa com Flet
+├── tests/
+│   ├── test_backend.py    # Testes unitários do banco e regras de negócio
+│   └── test_cep.py        # Testes de integração e mocks do ViaCEP
+├── .gitignore             # Arquivos ignorados pelo controle de versão
+├── requirements.txt       # Dependências do projeto
+└── README.md              # Documentação do repositório
