@@ -1,31 +1,28 @@
-# --- PASTAS DO PYTHON E AMBIENTES ---
+# Ambientes Virtuais
 .venv/
-env/
 venv/
-venv_dir/
+ENV/
+env/
 
-# Lixo gerado pelo Python (compilação)
+# Byte-compiled / Python cache
 __pycache__/
 *.py[cod]
 *$py.class
 
-# --- AMBIENTE E CONFIGURAÇÕES ---
-.env
-.env.local
-.env.*.local
+# Banco de Dados Local (para não sobrescrever dados de teste)
+*.db
+*.sqlite3
 
-# --- TESTES E COBERTURA ---
+# Logs e arquivos de sistema
+*.log
+.DS_Store
+Thumbs.db
+
+# Configurações de IDEs
+.vscode/
+.idea/
+
+# Pytest e Cobertura
 .pytest_cache/
 .coverage
 htmlcov/
-
-# --- IDEs E EDITORES ---
-.vscode/
-.idea/
-.DS_Store          # Arquivo invisível do Mac
-
-# --- DOCKER (Para o futuro) ---
-.dockerignore
-# Banco de dados
-controle_de_entregas.db
-/database
